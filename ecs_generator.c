@@ -63,12 +63,10 @@ void generate_ecs(const char * ecs_filename) {
 
         fprintf(output, "%s", line_buffer);
 
-        const char outer_delimiters[] = " ";
-
         char * token;
         char * outer_saveptr = NULL;
 
-        token = strtok_r(line_buffer, outer_delimiters, &outer_saveptr);
+        token = strtok_r(line_buffer, " ", &outer_saveptr);
 
         if(strcmp("//gen", token) == 0) {
             // the format of a generator comment is the following:
@@ -77,19 +75,22 @@ void generate_ecs(const char * ecs_filename) {
             step number, starting with 0 (0)
             comment, surrounded with \" ("Insert new ComponentKind enum values")
             */
-           printf("Found //gen.\n");
-           token = strtok_r(NULL, outer_delimiters, &outer_saveptr);
+           token = strtok_r(NULL, " ", &outer_saveptr);
            // this is the step number
            step_number = strtol(token, NULL, 10);
-           printf("Found step number %02d.\n", step_number);
-           token = strtok_r(NULL, outer_delimiters, &outer_saveptr);
-           printf("Found comment: '%s'\n", token);
+
+           printf("Step %02d: ", step_number);
+
+           token = strtok_r(NULL, " ", &outer_saveptr); // get the beginning of the comment
            char comment_buffer[512];
            memset(comment_buffer, 0, 512);
-           sprintf(comment_buffer, "%s %s", token, outer_saveptr);
+           sprintf(comment_buffer, "%s %s", token, outer_saveptr); // append the rest of the string to the first word of the comment
+
            comment_buffer[strlen(comment_buffer) - 1] = 0; // trim newline
-           printf("'%s'\n", comment_buffer);
-           insert_now = true;
+
+           printf("%s\n", comment_buffer);
+
+           insert_now = true; // print new lines
         }
 
         if(insert_now) {
@@ -101,13 +102,19 @@ void generate_ecs(const char * ecs_filename) {
                     // including headers
                     for(unsigned int i = 0; i < num_registered_types; i++) {
                         const char * header_file = registered_types[i].header_file;
-                        if(header_file == NULL) continue; // no header file needed because this is a primitive
+                        if(header_file == NULL) {
+                            printf("\tNo header needed for %s (%s).\n", registered_types[i].enum_value, registered_types[i].associated_type);
+                            continue; // no header file needed because this is a primitive
+                        }
+
                         if(header_file[0] == '<') {
                             // use angle brackets
                             fprintf(output, "#include %s // for %s\n", header_file, registered_types[i].associated_type);
+                            fprintf(stdout, "\t#include %s // for %s\n", header_file, registered_types[i].associated_type);
                         } else {
                             // use ""
                             fprintf(output, "#include \"%s\" // for %s\n", header_file, registered_types[i].associated_type);
+                            fprintf(stdout, "\t#include \"%s\" // for %s\n", header_file, registered_types[i].associated_type);
                         }
                     }
                     break;
@@ -117,6 +124,7 @@ void generate_ecs(const char * ecs_filename) {
                     for(unsigned int i = 0; i < num_registered_types; i++) {
                         const char * enum_value = registered_types[i].enum_value;
                         fprintf(output, "\t%s,%*c// %s from %s\n", enum_value, (31 - strlen(enum_value)), ' ', registered_types[i].associated_type, (registered_types[i].header_file == NULL) ? "stdlib" : registered_types[i].header_file);
+                        fprintf(stdout, "\t%s,%*c// %s from %s\n", enum_value, (31 - strlen(enum_value)), ' ', registered_types[i].associated_type, (registered_types[i].header_file == NULL) ? "stdlib" : registered_types[i].header_file);
                     }
                     break;
                 }
@@ -124,6 +132,7 @@ void generate_ecs(const char * ecs_filename) {
                     // creating internal registers
                     for(unsigned int i = 0; i < num_registered_types; i++) {
                         fprintf(output, "ANECS_CREATE_INTERNAAL_REGISTER(%s, %s, %s);\n", registered_types[i].enum_value, registered_types[i].associated_type, registered_types[i].number_of_components);
+                        fprintf(stdout, "\tANECS_CREATE_INTERNAAL_REGISTER(%s, %s, %s);\n", registered_types[i].enum_value, registered_types[i].associated_type, registered_types[i].number_of_components);
                     }
                     break;
                 }
@@ -131,6 +140,7 @@ void generate_ecs(const char * ecs_filename) {
                     // init internal registers
                     for(unsigned int i = 0; i < num_registered_types; i++) {
                         fprintf(output, "\tANECS_INTERNAAL_ARENA_INIT(%s);\n", registered_types[i].enum_value);
+                        fprintf(stdout, "\tANECS_INTERNAAL_ARENA_INIT(%s);\n", registered_types[i].enum_value);
                     }
                     break;
                 }
@@ -138,6 +148,7 @@ void generate_ecs(const char * ecs_filename) {
                     // de-init internal registers
                     for(unsigned int i = 0; i < num_registered_types; i++) {
                         fprintf(output, "\tANECS_INTERNAAL_ARENA_DEINIT(%s);\n", registered_types[i].enum_value);
+                        fprintf(stdout, "\tANECS_INTERNAAL_ARENA_DEINIT(%s);\n", registered_types[i].enum_value);
                     }
                     break;
                 }
@@ -145,6 +156,7 @@ void generate_ecs(const char * ecs_filename) {
                     // add getter
                     for(unsigned int i = 0; i < num_registered_types; i++) {
                         fprintf(output, "\tANECS_INTERNAAL_ARENA_GETIA(%s);\n", registered_types[i].enum_value);
+                        fprintf(stdout, "\tANECS_INTERNAAL_ARENA_GETIA(%s);\n", registered_types[i].enum_value);
                     }
                     break;
                 }
@@ -153,8 +165,10 @@ void generate_ecs(const char * ecs_filename) {
                     for(unsigned int i = 0; i < num_registered_types; i++) {
                         if(registered_types[i].is_string_type) {
                             fprintf(output, "\t\tANECS_INTERNAAL_AC_STRING_SWITCH(%s, %s, %s);\n", registered_types[i].enum_value, registered_types[i].associated_type, registered_types[i].associated_strlen);
+                            fprintf(stdout, "\tANECS_INTERNAAL_AC_STRING_SWITCH(%s, %s, %s);\n", registered_types[i].enum_value, registered_types[i].associated_type, registered_types[i].associated_strlen);
                         } else {
                             fprintf(output, "\t\tANECS_INTERNAAL_AC_SWITCH(%s, %s);\n", registered_types[i].enum_value, registered_types[i].associated_type);
+                            fprintf(stdout, "\tANECS_INTERNAAL_AC_SWITCH(%s, %s);\n", registered_types[i].enum_value, registered_types[i].associated_type);
                         }
                     }
                     break;
