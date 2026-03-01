@@ -8,7 +8,45 @@ gcc -o test main.c -lraylib -lgdi32 -lwinmm
 ```
 I'm using w64devkit, though (see https://wrzeczak.net/articles/compiling-c.html).
 
-## Extending (adding new Component types)
+## Automatically Extending (adding new Component types)
+Open up `ecs_generator.c`. This file is a script which generates an ANECS ecs. It relies on hook comments:
+```
+//gen step_number "Comment."
+```
+Don't edit `ecs_template.h` too hard because this is a pretty fragile system.
+
+In `ecs_generator.c`, edit the `main()` function:
+```c
+int main(void) {
+    register_init();
+    // register new ECS component types here
+
+    // this generates the header used in the example
+    register_new_type("RECTANGLE", "Rectangle", "<raylib.h>", "256"); // an external header is surrounded by <angle brackets>
+    register_new_type("PHYSICS_CIRCLE", "PhysicsCircle", "physics_circle.h", "256"); // a local header is not
+
+    // this generates a type that relies on a C primitive (no header)
+    register_new_type("HEALTH", "int", NULL, "256"); // NULL skips an include
+
+    // this generates a new string type
+    register_new_string_type("LABEL", "char *", NULL, "256", "strlen");
+    // to implement the example in the code about wchar_t, you would need to do a little more work redirecting the thing to a new wchar string buffer. This special case cannot be handled by this script.
+
+    generate_ecs("ecs.h");
+
+    return 0;
+}
+```
+Then simply compile and run:
+```
+gcc -o gen ecs_generator.c
+./gen
+```
+A new file called `ecs.h` will be created in the CWD of `./gen`. Copy-paste this where you need it. This system does not handle creating a stringifier/printer function. See step 8 below for details on that.
+
+---
+
+## Manually Extending 
 I tried to design it to be easy to extend. The process of including a new type looks like the following:
 
 1) Include the header where your type is defined in `ecs.h` (or just define it there directly):
