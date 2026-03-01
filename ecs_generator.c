@@ -86,7 +86,7 @@ void generate_ecs(const char * ecs_filename) {
             // the format of a generator comment is the following:
             /*
             slash-slash gen (//gen)
-            step number, starting with 0 (0)
+            step number, starting with 1 (1)
             comment, surrounded with \" ("Insert new ComponentKind enum values")
             */
            token = strtok_r(NULL, " ", &outer_saveptr);
