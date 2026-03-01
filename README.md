@@ -25,6 +25,7 @@ typedef enum {
 3) Create an internal register for components of this type. If you're creating one that stores string values, there's an extra step involving the `STRINGS` register that is discussed later. You might want to expand the size of `STRINGS` if you are doing this.
 ```c
 ANECS_CREATE_INTERNAAL_REGISTER(PHYSICS_CIRCLE, PhysicsCircle, 256); // note: this means up to 256 instances of this component can exist at once.
+// also note that "internal" is consistently misspelled as "internaal" in my code; this is intentional and meant to help prevent name clashes, although frankly the anecs prefix probably does that already. It's ugly but should be insulated sufficiently from user.
 ```
 4) Initialize the register in `anecsInit()`:
 ```c
