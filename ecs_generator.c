@@ -3,6 +3,38 @@
 #include <string.h>
 #include <stdbool.h>
 
+void register_init();
+void register_new_type(const char * enum_value, const char * associated_type, const char * header_file, const char * number_of_components);
+void register_new_string_type(const char * enum_value, const char * associated_type, const char * header_file, const char * number_of_components, const char * associated_strlen);
+void generate_ecs(const char * ecs_filename);
+
+//------------------------------------------------------------------------------
+// MAKE CHANGES ONLY INSIDE OF MAIN <3
+// i mean, do what you want, but you only *need* to change what's in main
+
+int main(void) {
+    register_init();
+    // register new ECS component types here
+
+    // this generates the header used in the example
+    register_new_type("RECTANGLE", "Rectangle", "<raylib.h>", "256"); // an external header is surrounded by <angle brackets>
+    register_new_type("PHYSICS_CIRCLE", "PhysicsCircle", "physics_circle.h", "256"); // a local header is not
+
+    // this generates a type that relies on a C primitive (no header)
+    register_new_type("HEALTH", "int", NULL, "256"); // NULL skips an include
+
+    // this generates a new string type
+    register_new_string_type("LABEL", "char *", NULL, "256", "strlen");
+    // to implement the example in the code about wchar_t, you would need to do a little more work redirecting the thing to a new wchar string buffer. This special case cannot be handled by this script.
+
+    generate_ecs("ecs.h");
+
+    return 0;
+}
+
+//------------------------------------------------------------------------------
+// shouldn't be any need to mess with what's down here
+
 struct ComponentType {
     const char * enum_value;
     const char * associated_type;
@@ -10,39 +42,21 @@ struct ComponentType {
     const char * number_of_components;
     //----
     const char * associated_strlen;
-    bool is_string_type;
 };
 
 struct ComponentType * registered_types;
 unsigned int num_registered_types = 0;
 
-void register_init();
-void register_new_type(const char * enum_value, const char * associated_type, const char * header_file, const char * number_of_components);
-void register_new_string_type(const char * enum_value, const char * associated_type, const char * header_file, const char * number_of_components, const char * associated_strlen);
-void generate_ecs(const char * ecs_filename);
-
-int main(void) {
-    register_init();
-    // register new ECS component types here
-
-    register_new_type("RECTANGLE", "Rectangle", "<raylib.h>", "256");
-    register_new_type("PHYSICS_CIRCLE", "PhysicsCircle", "physics_circle.h", "256");
-
-    generate_ecs("ecs.h");
-
-    return 0;
-}
-
 void register_new_type(const char * enum_value, const char * associated_type, const char * header_file, const char * number_of_components) {
     num_registered_types++;
     registered_types = realloc(registered_types, sizeof(struct ComponentType) * num_registered_types);
-    registered_types[num_registered_types - 1] = (struct ComponentType) { enum_value, associated_type, header_file, number_of_components, NULL, false };
+    registered_types[num_registered_types - 1] = (struct ComponentType) { enum_value, associated_type, header_file, number_of_components, NULL };
 }
 
 void register_new_string_type(const char * enum_value, const char * associated_type, const char * header_file, const char * number_of_components, const char * associated_strlen) {
     num_registered_types++;
     registered_types = realloc(registered_types, sizeof(struct ComponentType) * num_registered_types);
-    registered_types[num_registered_types - 1] = (struct ComponentType) { enum_value, associated_type, header_file, number_of_components, associated_strlen, true };
+    registered_types[num_registered_types - 1] = (struct ComponentType) { enum_value, associated_type, header_file, number_of_components, associated_strlen };
 }
 
 void register_init() {
@@ -163,7 +177,7 @@ void generate_ecs(const char * ecs_filename) {
                 case 7: {
                     // add switch to component creation
                     for(unsigned int i = 0; i < num_registered_types; i++) {
-                        if(registered_types[i].is_string_type) {
+                        if(registered_types[i].associated_strlen != NULL) {
                             fprintf(output, "\t\tANECS_INTERNAAL_AC_STRING_SWITCH(%s, %s, %s);\n", registered_types[i].enum_value, registered_types[i].associated_type, registered_types[i].associated_strlen);
                             fprintf(stdout, "\tANECS_INTERNAAL_AC_STRING_SWITCH(%s, %s, %s);\n", registered_types[i].enum_value, registered_types[i].associated_type, registered_types[i].associated_strlen);
                         } else {

@@ -18,6 +18,8 @@ typedef enum {
     //gen 2 "Insert new ComponentKind enum values."
 	RECTANGLE,                      // Rectangle from <raylib.h>
 	PHYSICS_CIRCLE,                 // PhysicsCircle from physics_circle.h
+	HEALTH,                         // int from stdlib
+	LABEL,                          // char * from stdlib
 } ComponentKind;
 
 /**
@@ -108,6 +110,8 @@ ANECS_CREATE_INTERNAAL_REGISTER(NAME, char *, 256);
 //gen 3 "Create internal registers."
 ANECS_CREATE_INTERNAAL_REGISTER(RECTANGLE, Rectangle, 256);
 ANECS_CREATE_INTERNAAL_REGISTER(PHYSICS_CIRCLE, PhysicsCircle, 256);
+ANECS_CREATE_INTERNAAL_REGISTER(HEALTH, int, 256);
+ANECS_CREATE_INTERNAAL_REGISTER(LABEL, char *, 256);
 
 ANECS_CREATE_INTERNAAL_REGISTER(ENTITY, Entity, 2048);  // this stores all entities created by aeCreate()
 ANECS_CREATE_INTERNAAL_REGISTER(STRINGS, char, 8192);   // this is a buffer for strings to live, things like NAME point here. this should not be directly touched by the user
@@ -177,6 +181,8 @@ void anecsInit(void) {
     //gen 4 "Initialize registers in anecsInit()."
 	ANECS_INTERNAAL_ARENA_INIT(RECTANGLE);
 	ANECS_INTERNAAL_ARENA_INIT(PHYSICS_CIRCLE);
+	ANECS_INTERNAAL_ARENA_INIT(HEALTH);
+	ANECS_INTERNAAL_ARENA_INIT(LABEL);
 
     ANECS_INTERNAAL_ARENA_INIT(ENTITY);
     ANECS_INTERNAAL_ARENA_INIT(STRINGS);
@@ -203,6 +209,8 @@ void anecsDestroy(void) {
     //gen 5 "De-init internal registers in anecsDestroy()."
 	ANECS_INTERNAAL_ARENA_DEINIT(RECTANGLE);
 	ANECS_INTERNAAL_ARENA_DEINIT(PHYSICS_CIRCLE);
+	ANECS_INTERNAAL_ARENA_DEINIT(HEALTH);
+	ANECS_INTERNAAL_ARENA_DEINIT(LABEL);
 
     ANECS_INTERNAAL_ARENA_DEINIT(ENTITY);
     ANECS_INTERNAAL_ARENA_DEINIT(STRINGS);
@@ -345,6 +353,8 @@ anecsArena * aaGetIA(const char * arena_kind_s) {
     //gen 6 "Add a getter in aaGetIA()."
 	ANECS_INTERNAAL_ARENA_GETIA(RECTANGLE);
 	ANECS_INTERNAAL_ARENA_GETIA(PHYSICS_CIRCLE);
+	ANECS_INTERNAAL_ARENA_GETIA(HEALTH);
+	ANECS_INTERNAAL_ARENA_GETIA(LABEL);
     
     ANECS_INTERNAAL_ARENA_GETIA(ENTITY);
     // you cannot access STRINGS or STRINGIFIERS using this function; this is because you shouldn't access these. use the macro aaGetIA_m instead if you must
@@ -395,6 +405,8 @@ Component acCreate(ComponentKind kind, ...) {
         //gen 7 "Add switch statement to acCreate()."
 		ANECS_INTERNAAL_AC_SWITCH(RECTANGLE, Rectangle);
 		ANECS_INTERNAAL_AC_SWITCH(PHYSICS_CIRCLE, PhysicsCircle);
+		ANECS_INTERNAAL_AC_SWITCH(HEALTH, int);
+		ANECS_INTERNAAL_AC_STRING_SWITCH(LABEL, char *, strlen);
         default: {
             printf("acCreate: Attempted to create component of invalid kind (%zu)!\n", kind);
             anecsDestroy();
