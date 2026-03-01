@@ -338,16 +338,16 @@ void * aaGetAt(anecsArena * arena, unsigned int index) {
  * @return If the label is found, a reference to that arena; on failure, prints an error message and returns NULL.
  */
 anecsArena * aaGetIA(const char * arena_kind_s) {
-    #define ANECS_INTERNAL_ARENA_GETIA(arena_kind) if(strcmp(#arena_kind, arena_kind_s) == 0) return aaGetIA_m(arena_kind)
+    #define ANECS_INTERNAAL_ARENA_GETIA(arena_kind) if(strcmp(#arena_kind, arena_kind_s) == 0) return aaGetIA_m(arena_kind)
     
-    ANECS_INTERNAL_ARENA_GETIA(NAME);
-    ANECS_INTERNAL_ARENA_GETIA(RECTANGLE);
-    ANECS_INTERNAL_ARENA_GETIA(PHYSICS_CIRCLE);
+    ANECS_INTERNAAL_ARENA_GETIA(NAME);
+    ANECS_INTERNAAL_ARENA_GETIA(RECTANGLE);
+    ANECS_INTERNAAL_ARENA_GETIA(PHYSICS_CIRCLE);
     
-    ANECS_INTERNAL_ARENA_GETIA(ENTITY);
+    ANECS_INTERNAAL_ARENA_GETIA(ENTITY);
     // you cannot access STRINGS or STRINGIFIERS using this function; this is because you shouldn't access these. use the macro aaGetIA_m instead if you must
 
-    #undef ANECS_INTERNAL_ARENA_GETIA
+    #undef ANECS_INTERNAAL_ARENA_GETIA
 
     printf("aaGetIA: Attempted to get arena of kind \"%s\"; this arena either does not exist, or cannot be accessed with this function (STRINGS, STRINGIFIERS)! In the latter case, use aaGetIA_m().\n Returning NULL...\n");
     return NULL;
@@ -370,7 +370,7 @@ Component acCreate(ComponentKind kind, ...) {
 
     Component output = { .kind = kind, .data = NULL };
 
-    #define ANECS_INTERNAL_AC_SWITCH(component_kind, component_type) \
+    #define ANECS_INTERNAAL_AC_SWITCH(component_kind, component_type) \
         case component_kind: { \
             component_type val = va_arg(args, component_type); \
             output.data = aaAppend(aaGetIA_m(component_kind), &val); \
@@ -380,7 +380,7 @@ Component acCreate(ComponentKind kind, ...) {
     // the idea here is what maybe you would want to implement your own WIDE_NAME, for instance
     // then it would look something like
     // ANECS_INTERNAL_AC_STRING_SWITCH(WIDE_NAME, wchar_t *, wcslen)
-    #define ANECS_INTERNAL_AC_STRING_SWITCH(s_component_kind, s_type, s_strlen) \
+    #define ANECS_INTERNAAL_AC_STRING_SWITCH(s_component_kind, s_type, s_strlen) \
         case s_component_kind: { \
             s_type read_val = va_arg(args, s_type); \
             s_type val = (s_type) aaAppendMany(aaGetIA_m(STRINGS), (void *) read_val, s_strlen(read_val) + 1); \
@@ -389,9 +389,9 @@ Component acCreate(ComponentKind kind, ...) {
         }
 
     switch(kind) {
-        ANECS_INTERNAL_AC_SWITCH(RECTANGLE, Rectangle);
-        ANECS_INTERNAL_AC_SWITCH(PHYSICS_CIRCLE, PhysicsCircle);
-        ANECS_INTERNAL_AC_STRING_SWITCH(NAME, char *, strlen);
+        ANECS_INTERNAAL_AC_SWITCH(PHYSICS_CIRCLE, PhysicsCircle);
+        ANECS_INTERNAAL_AC_STRING_SWITCH(NAME, char *, strlen);
+        ANECS_INTERNAAL_AC_SWITCH(RECTANGLE, Rectangle);
         default: {
             printf("acCreate: Attempted to create component of invalid kind (%zu)!\n", kind);
             anecsDestroy();
@@ -399,8 +399,9 @@ Component acCreate(ComponentKind kind, ...) {
         }
     }
 
-    #undef ANECS_INTERNAL_AC_SWITCH
-
+    #undef ANECS_INTERNAAL_AC_SWITCH
+    #undef ANECS_INTERNAAL_AC_STRING_SWITCH
+    
     return output;
 }
 
