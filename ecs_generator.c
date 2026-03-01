@@ -1,0 +1,174 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+
+struct ComponentType {
+    const char * enum_value;
+    const char * associated_type;
+    const char * header_file;
+    const char * number_of_components;
+    //----
+    const char * associated_strlen;
+    bool is_string_type;
+};
+
+struct ComponentType * registered_types;
+unsigned int num_registered_types = 0;
+
+void register_init();
+void register_new_type(const char * enum_value, const char * associated_type, const char * header_file, const char * number_of_components);
+void register_new_string_type(const char * enum_value, const char * associated_type, const char * header_file, const char * number_of_components, const char * associated_strlen);
+void generate_ecs(const char * ecs_filename);
+
+int main(void) {
+    register_init();
+    // register new ECS component types here
+
+    register_new_type("RECTANGLE", "Rectangle", "<raylib.h>", "256");
+    register_new_type("PHYSICS_CIRCLE", "PhysicsCircle", "physics_circle.h", "256");
+
+    generate_ecs("ecs.h");
+
+    return 0;
+}
+
+void register_new_type(const char * enum_value, const char * associated_type, const char * header_file, const char * number_of_components) {
+    num_registered_types++;
+    registered_types = realloc(registered_types, sizeof(struct ComponentType) * num_registered_types);
+    registered_types[num_registered_types - 1] = (struct ComponentType) { enum_value, associated_type, header_file, number_of_components, NULL, false };
+}
+
+void register_new_string_type(const char * enum_value, const char * associated_type, const char * header_file, const char * number_of_components, const char * associated_strlen) {
+    num_registered_types++;
+    registered_types = realloc(registered_types, sizeof(struct ComponentType) * num_registered_types);
+    registered_types[num_registered_types - 1] = (struct ComponentType) { enum_value, associated_type, header_file, number_of_components, associated_strlen, true };
+}
+
+void register_init() {
+    registered_types = malloc(0);
+}
+
+void generate_ecs(const char * ecs_filename) {
+    FILE * output = fopen(ecs_filename, "w");
+    FILE * template = fopen("ecs_template.h", "r");
+    char line_buffer[512];
+
+    int step_number = -1;
+    bool insert_now = false;
+
+    memset(line_buffer, 0, 512);
+    while(fgets(line_buffer, 512, template)) {
+        // https://www.geeksforgeeks.org/cpp/strtok-strtok_r-functions-c-examples/
+
+        fprintf(output, "%s", line_buffer);
+
+        const char outer_delimiters[] = " ";
+
+        char * token;
+        char * outer_saveptr = NULL;
+
+        token = strtok_r(line_buffer, outer_delimiters, &outer_saveptr);
+
+        if(strcmp("//gen", token) == 0) {
+            // the format of a generator comment is the following:
+            /*
+            slash-slash gen (//gen)
+            step number, starting with 0 (0)
+            comment, surrounded with \" ("Insert new ComponentKind enum values")
+            */
+           printf("Found //gen.\n");
+           token = strtok_r(NULL, outer_delimiters, &outer_saveptr);
+           // this is the step number
+           step_number = strtol(token, NULL, 10);
+           printf("Found step number %02d.\n", step_number);
+           token = strtok_r(NULL, outer_delimiters, &outer_saveptr);
+           printf("Found comment: '%s'\n", token);
+           char comment_buffer[512];
+           memset(comment_buffer, 0, 512);
+           sprintf(comment_buffer, "%s %s", token, outer_saveptr);
+           comment_buffer[strlen(comment_buffer) - 1] = 0; // trim newline
+           printf("'%s'\n", comment_buffer);
+           insert_now = true;
+        }
+
+        if(insert_now) {
+            insert_now = false;
+
+            // these correspond to the manual step numbers in the README
+            switch(step_number) {
+                case 1: {
+                    // including headers
+                    for(unsigned int i = 0; i < num_registered_types; i++) {
+                        const char * header_file = registered_types[i].header_file;
+                        if(header_file == NULL) continue; // no header file needed because this is a primitive
+                        if(header_file[0] == '<') {
+                            // use angle brackets
+                            fprintf(output, "#include %s // for %s\n", header_file, registered_types[i].associated_type);
+                        } else {
+                            // use ""
+                            fprintf(output, "#include \"%s\" // for %s\n", header_file, registered_types[i].associated_type);
+                        }
+                    }
+                    break;
+                }
+                case 2: {
+                    // inserting enums
+                    for(unsigned int i = 0; i < num_registered_types; i++) {
+                        const char * enum_value = registered_types[i].enum_value;
+                        fprintf(output, "\t%s,%*c// %s from %s\n", enum_value, (31 - strlen(enum_value)), ' ', registered_types[i].associated_type, (registered_types[i].header_file == NULL) ? "stdlib" : registered_types[i].header_file);
+                    }
+                    break;
+                }
+                case 3: {
+                    // creating internal registers
+                    for(unsigned int i = 0; i < num_registered_types; i++) {
+                        fprintf(output, "ANECS_CREATE_INTERNAAL_REGISTER(%s, %s, %s);\n", registered_types[i].enum_value, registered_types[i].associated_type, registered_types[i].number_of_components);
+                    }
+                    break;
+                }
+                case 4: {
+                    // init internal registers
+                    for(unsigned int i = 0; i < num_registered_types; i++) {
+                        fprintf(output, "\tANECS_INTERNAAL_ARENA_INIT(%s);\n", registered_types[i].enum_value);
+                    }
+                    break;
+                }
+                case 5: {
+                    // de-init internal registers
+                    for(unsigned int i = 0; i < num_registered_types; i++) {
+                        fprintf(output, "\tANECS_INTERNAAL_ARENA_DEINIT(%s);\n", registered_types[i].enum_value);
+                    }
+                    break;
+                }
+                case 6: {
+                    // add getter
+                    for(unsigned int i = 0; i < num_registered_types; i++) {
+                        fprintf(output, "\tANECS_INTERNAAL_ARENA_GETIA(%s);\n", registered_types[i].enum_value);
+                    }
+                    break;
+                }
+                case 7: {
+                    // add switch to component creation
+                    for(unsigned int i = 0; i < num_registered_types; i++) {
+                        if(registered_types[i].is_string_type) {
+                            fprintf(output, "\t\tANECS_INTERNAAL_AC_STRING_SWITCH(%s, %s, %s);\n", registered_types[i].enum_value, registered_types[i].associated_type, registered_types[i].associated_strlen);
+                        } else {
+                            fprintf(output, "\t\tANECS_INTERNAAL_AC_SWITCH(%s, %s);\n", registered_types[i].enum_value, registered_types[i].associated_type);
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    printf("ERROR: unrecognized step number. Aborting...\n");
+                    fclose(output);
+                    fclose(template);
+                    exit(2);
+                }
+            }
+        }
+    }
+
+    fclose(output);
+    fclose(template);
+}

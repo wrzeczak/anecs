@@ -4,22 +4,16 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#include <raylib.h>
-#include "physics_circle.h"
+//gen 1 "Including headers"
 
 //------------------------------------------------------------------------------
 
 /**
  * A value which denotes how to interpret the data in a component.
- * 
- * @param RECTANGLE `Rectangle`, from raylib.h
- * @param NAME `char *`, allocated on internal STRINGS arena
- * @param PHYSICS_CIRCLE `PhysicsCircle`, from physics_circle.h
  */
 typedef enum {
-    RECTANGLE = 0,                  // Rectangle, from raylib.h
-    NAME,                           // char *; allocated on internal string arena
-    PHYSICS_CIRCLE,                 // PhysicsCircle, from physics_circle.h
+    NAME = 0,                       // char *; allocated on internal string arena
+    //gen 2 "Insert new ComponentKind enum values."
 } ComponentKind;
 
 /**
@@ -106,9 +100,8 @@ typedef struct {
 
 #define ANECS_CREATE_INTERNAAL_REGISTER(register_name, associated_type, cap_size) const size_t internaal_aa##register_name##_CAP = cap_size; const unsigned char internaal_aa##register_name##_BLK = (unsigned char) sizeof(associated_type); static anecsArena internaal_aa##register_name = { 0 };
 
-ANECS_CREATE_INTERNAAL_REGISTER(RECTANGLE, Rectangle, 256);
 ANECS_CREATE_INTERNAAL_REGISTER(NAME, char *, 256);
-ANECS_CREATE_INTERNAAL_REGISTER(PHYSICS_CIRCLE, PhysicsCircle, 256);
+//gen 3 "Create internal registers."
 
 ANECS_CREATE_INTERNAAL_REGISTER(ENTITY, Entity, 2048);  // this stores all entities created by aeCreate()
 ANECS_CREATE_INTERNAAL_REGISTER(STRINGS, char, 8192);   // this is a buffer for strings to live, things like NAME point here. this should not be directly touched by the user
@@ -174,9 +167,8 @@ char * amiscComponentNAMEStringify(Component comp);
 void anecsInit(void) {
     #define ANECS_INTERNAAL_ARENA_INIT(component_kind) internaal_aa##component_kind = aaCreate(internaal_aa##component_kind##_CAP, internaal_aa##component_kind##_BLK);
 
-    ANECS_INTERNAAL_ARENA_INIT(RECTANGLE);
     ANECS_INTERNAAL_ARENA_INIT(NAME);
-    ANECS_INTERNAAL_ARENA_INIT(PHYSICS_CIRCLE);
+    //gen 4 "Initialize registers in anecsInit()."
 
     ANECS_INTERNAAL_ARENA_INIT(ENTITY);
     ANECS_INTERNAAL_ARENA_INIT(STRINGS);
@@ -199,9 +191,8 @@ void anecsInit(void) {
 void anecsDestroy(void) {
     #define ANECS_INTERNAAL_ARENA_DEINIT(component_kind) aaDestroy(&(internaal_aa##component_kind));
 
-    ANECS_INTERNAAL_ARENA_DEINIT(RECTANGLE);
     ANECS_INTERNAAL_ARENA_DEINIT(NAME);
-    ANECS_INTERNAAL_ARENA_DEINIT(PHYSICS_CIRCLE);
+    //gen 5 "De-init internal registers in anecsDestroy()."
 
     ANECS_INTERNAAL_ARENA_DEINIT(ENTITY);
     ANECS_INTERNAAL_ARENA_DEINIT(STRINGS);
@@ -341,8 +332,7 @@ anecsArena * aaGetIA(const char * arena_kind_s) {
     #define ANECS_INTERNAAL_ARENA_GETIA(arena_kind) if(strcmp(#arena_kind, arena_kind_s) == 0) return aaGetIA_m(arena_kind)
     
     ANECS_INTERNAAL_ARENA_GETIA(NAME);
-    ANECS_INTERNAAL_ARENA_GETIA(RECTANGLE);
-    ANECS_INTERNAAL_ARENA_GETIA(PHYSICS_CIRCLE);
+    //gen 6 "Add a getter in aaGetIA()."
     
     ANECS_INTERNAAL_ARENA_GETIA(ENTITY);
     // you cannot access STRINGS or STRINGIFIERS using this function; this is because you shouldn't access these. use the macro aaGetIA_m instead if you must
@@ -389,9 +379,8 @@ Component acCreate(ComponentKind kind, ...) {
         }
 
     switch(kind) {
-        ANECS_INTERNAAL_AC_SWITCH(PHYSICS_CIRCLE, PhysicsCircle);
         ANECS_INTERNAAL_AC_STRING_SWITCH(NAME, char *, strlen);
-        ANECS_INTERNAAL_AC_SWITCH(RECTANGLE, Rectangle);
+        //gen 7 "Add switch statement to acCreate()."
         default: {
             printf("acCreate: Attempted to create component of invalid kind (%zu)!\n", kind);
             anecsDestroy();
