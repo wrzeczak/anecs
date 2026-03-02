@@ -42,7 +42,7 @@ Then simply compile and run:
 gcc -o gen ecs_generator.c
 ./gen
 ```
-A new file called `ecs.h` will be created in the CWD of `./gen`. Copy-paste this where you need it. This system does not handle creating a stringifier/printer function. See step 8 below for details on that.
+A new file called `ecs.h` will be created in the CWD of `./gen`. Copy-paste this where you need it. This system does not handle creating a stringifier/printer function. See step 8 below for details on that. Please note that if you draw multiple types from the same header file, this will naively include that header file twice, so you'll have to fix that. It is not worth the effort (to me) to give this script the smarts to get around that.
 
 ---
 
@@ -102,7 +102,7 @@ Component acCreate(ComponentKind kind, ...) {
 ```
 8) Optional, but recommended: create a stringifying function.
 ```c
-// in physics_circle.h
+// in physics_circle.h, say we already have a printer function; you could just implement one that takes a component directly
 char * phys_circle_to_string(PhysicsCircle pc) {
     static char output[256];
     memset(output, 0, 256);
@@ -111,7 +111,10 @@ char * phys_circle_to_string(PhysicsCircle pc) {
 }
 
 // in main.c
-char * my_pc_comp_string(Component comp) { phys_circle_to_string(*(PhysicsCircle *) comp.data); }
+char * my_pc_comp_string(Component comp) { 
+    assert(comp.kind == PHYSICS_CIRCLE && "my_pc_comp_string ComponentKind assert");
+    return phys_circle_to_string(*(PhysicsCircle *) comp.data); 
+}
 ComponentStringifier pccs = &my_pc_comp_string;
 ...
 // after anecsInit()
